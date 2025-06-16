@@ -38,13 +38,16 @@ class MyLogReg:
         return self._sigmoid(X @ weights)
 
     def _sigmoid(self, Y_linear: np.array) -> np.array:
-        return 1 / (1 + np.exp(-Y_linear))
+        Y = np.zeros(Y_linear.shape)
+        Y[Y_linear >= 0] = 1 / (1 + np.exp(-Y_linear[Y_linear >= 0]))
+        Y[Y_linear < 0] = np.exp(Y_linear[Y_linear < 0]) / (1 + np.exp(Y_linear[Y_linear < 0]))
+        return Y
 
     def _calc_loss(self, Y_input: np.array, Y_predicted: np.array) -> np.array:
         return -1 * np.mean(Y_input * np.log(Y_predicted + EPS) + (1 - Y_input) * np.log(1 - Y_predicted + EPS))
 
     def _calc_gradient(self, Y_input: np.array, Y_predicted: np.array, X: np.array) -> np.array:
-        return X.T @ (Y_predicted - Y_input)
+        return X.T @ (Y_predicted - Y_input) / X.shape[0]
 
     def get_coef(self):
         return self.weights
