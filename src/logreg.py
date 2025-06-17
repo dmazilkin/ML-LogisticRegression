@@ -14,9 +14,7 @@ class MyLogReg:
         return f"MyLogReg class: n_iter={self.n_iter}, learning_rate={self.learning_rate}"
 
     def fit(self, X_input: pd.DataFrame, Y_input: pd.Series, verbose: Union[bool, int] = False):
-        samples_count = X_input.shape[0]
-        bias_feature = pd.DataFrame(np.zeros((samples_count, 1)) + 1)
-        X = pd.concat([bias_feature, X_input], axis=1).to_numpy()
+        X = self._preprocess_features(X_input)
         Y_input = Y_input.to_numpy().reshape(-1, 1)
         features_count = X.shape[1]
         self.weights = np.zeros((features_count, 1)) + 1
@@ -52,8 +50,15 @@ class MyLogReg:
     def get_coef(self):
         return self.weights
 
-    def predict(self, X_input: pd.DataFrame):
+    def _preprocess_features(self, X_input: pd.DataFrame) -> np.array:
         samples_count = X_input.shape[0]
         bias_feature = pd.DataFrame(np.zeros((samples_count, 1)) + 1)
-        X = pd.concat([bias_feature, X_input], axis=1).to_numpy()
-        return pd.Series((X @ self.weights >= 0.5).astype(int).ravel())
+        return pd.concat([bias_feature, X_input], axis=1).to_numpy()
+
+    def predict(self, X_input: pd.DataFrame) -> pd.Series:
+        X = self._preprocess_features(X_input)
+        return pd.Series(self._sigmoid(X @ self.weights).ravel() > 0.5).astype(int)
+
+    def predict_proba(self, X_input: pd.DataFrame) -> np.array:
+        X = self._preprocess_features(X_input)
+        return pd.Series(self._sigmoid(X @ self.weights).ravel())
