@@ -3,11 +3,14 @@ import numpy as np
 from typing import Union
 
 EPS = 10 ** (-15)
+THRESHOLD = 0.5
 
 class MyLogReg:
-    def __init__(self, n_iter=10, learning_rate=0.1):
+    def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
+        self.metric = metric
+        self.best_metric = None
         self.weights = None
 
     def __str__(self):
@@ -18,22 +21,26 @@ class MyLogReg:
         Y_input = Y_input.to_numpy().reshape(-1, 1)
         features_count = X.shape[1]
         self.weights = np.zeros((features_count, 1)) + 1
-
         epoch = 0
+
         while epoch < self.n_iter:
-            Y_predicted = self._predict(X, self.weights)
+            Y_predicted = self._predict_proba(X, self.weights)
             loss = self._calc_loss(Y_input, Y_predicted)
             gradient = self._calc_gradient(Y_input, Y_predicted, X)
             self.weights -= self.learning_rate * gradient
 
             if (verbose > 0) and (epoch % verbose == 0):
                 ind_log = 'start' if epoch == 0 else epoch
-                print(f'ind_log | loss: {loss}')
+                metric = f' | {self.metric} : {self._calc_metric(self.metric, Y_input, self._predict_class(Y_predicted))}' if self.metric else ''
+                print(f'{ind_log} | loss: {loss}' + metric)
 
             epoch += 1
 
-    def _predict(self, X: np.array, weights: np.array) -> np.array:
+    def _predict_proba(self, X: np.array, weights: np.array) -> np.array:
         return self._sigmoid(X @ weights)
+
+    def _predict_class(self, Y_predicted_proba: np.array) -> np.array:
+        return (Y_predicted_proba > THRESHOLD).astype(int)
 
     def _sigmoid(self, Y_linear: np.array) -> np.array:
         Y = np.zeros(Y_linear.shape)
@@ -47,6 +54,48 @@ class MyLogReg:
     def _calc_gradient(self, Y_input: np.array, Y_predicted: np.array, X: np.array) -> np.array:
         return X.T @ (Y_predicted - Y_input) / X.shape[0]
 
+    def _calc_metric(self, metric: str, Y_input: np.array, Y_predicted: np.array) -> float:
+        available_metrics = {
+            'accuracy': self._calc_accuracy,
+            'precision': self._calc_precision,
+            'recall': self._calc_recall,
+            'f1': self._calc_f1,
+        }
+
+        return available_metrics[metric](Y_input, Y_predicted)
+
+    def _calc_tp(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        return np.sum(Y_predicted[(Y_predicted == 1) & (Y_input == 1)])
+
+    def _calc_fp(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        return np.sum(Y_input[Y_predicted == 1] == 0)
+
+    def _calc_tn(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        return np.sum(Y_predicted[(Y_predicted == 0) & (Y_input == 0)])
+
+    def _calc_fn(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        return np.sum(Y_input[Y_predicted == 0] == 1)
+
+    def _calc_accuracy(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        TP = self._calc_tp(Y_input, Y_predicted)
+        TN = self._calc_tn(Y_input, Y_predicted)
+        return (TP + TN) / Y_predicted.size
+
+    def _calc_precision(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        TP = self._calc_tp(Y_input, Y_predicted)
+        FP = self._calc_fp(Y_input, Y_predicted)
+        return TP / (TP + FP)
+
+    def _calc_recall(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        TP = self._calc_tp(Y_input, Y_predicted)
+        FN = self._calc_fn(Y_input, Y_predicted)
+        return TP / (TP + FN)
+
+    def _calc_f1(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        precision = self._calc_precision(Y_input, Y_predicted)
+        recall = self._calc_recall(Y_input, Y_predicted)
+        return 2 * precision * recall / (precision + recall)
+
     def get_coef(self):
         return self.weights
 
@@ -57,8 +106,11 @@ class MyLogReg:
 
     def predict(self, X_input: pd.DataFrame) -> pd.Series:
         X = self._preprocess_features(X_input)
-        return pd.Series(self._sigmoid(X @ self.weights).ravel() > 0.5).astype(int)
+        return pd.Series(self._sigmoid(X @ self.weights).ravel() > THRESHOLD).astype(int)
 
     def predict_proba(self, X_input: pd.DataFrame) -> np.array:
         X = self._preprocess_features(X_input)
         return pd.Series(self._sigmoid(X @ self.weights).ravel())
+
+    def get_best_score(self):
+        return self.best_metric
