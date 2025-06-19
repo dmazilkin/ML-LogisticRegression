@@ -11,7 +11,7 @@ def main():
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X[0] > X[1] - 2).astype(int)
 
-    model = MyLogReg(n_iter=50, metric='accuracy')
+    model = MyLogReg(n_iter=50, metric='roc_auc')
     model.fit(X, Y, verbose=True)
     Y_predicted = model.predict(X)
 

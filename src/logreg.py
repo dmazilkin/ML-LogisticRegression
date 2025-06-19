@@ -31,10 +31,14 @@ class MyLogReg:
 
             if (verbose > 0) and (epoch % verbose == 0):
                 ind_log = 'start' if epoch == 0 else epoch
-                metric = f' | {self.metric} : {self._calc_metric(self.metric, Y_input, self._predict_class(Y_predicted))}' if self.metric else ''
+                metric = f' | {self.metric} : {self._calc_metric(self.metric, Y_input, Y_predicted)}' if self.metric else ''
                 print(f'{ind_log} | loss: {loss}' + metric)
 
             epoch += 1
+
+            if epoch == self.n_iter:
+                Y_predicted = self._predict_proba(X, self.weights)
+                self.best_metric = self._calc_metric(self.metric, Y_input, Y_predicted)
 
     def _predict_proba(self, X: np.array, weights: np.array) -> np.array:
         return self._sigmoid(X @ weights)
@@ -55,23 +59,30 @@ class MyLogReg:
         return X.T @ (Y_predicted - Y_input) / X.shape[0]
 
     def _calc_metric(self, metric: str, Y_input: np.array, Y_predicted: np.array) -> float:
-        available_metrics = {
+        available_metrics_class = {
             'accuracy': self._calc_accuracy,
             'precision': self._calc_precision,
             'recall': self._calc_recall,
             'f1': self._calc_f1,
         }
 
-        return available_metrics[metric](Y_input, Y_predicted)
+        available_metrics_probability = {
+            'roc_auc': self._calc_roc_auc,
+        }
+
+        metric_method = available_metrics_class[metric] if metric in available_metrics_class else available_metrics_probability[metric]
+        Y_predicted_preprocess = Y_predicted if metric in available_metrics_probability else self._predict_class(Y_predicted)
+
+        return metric_method(Y_input, Y_predicted_preprocess)
 
     def _calc_tp(self, Y_input: np.array, Y_predicted: np.array) -> float:
-        return np.sum(Y_predicted[(Y_predicted == 1) & (Y_input == 1)])
+        return np.sum((Y_predicted == 1) & (Y_input == 1))
 
     def _calc_fp(self, Y_input: np.array, Y_predicted: np.array) -> float:
         return np.sum(Y_input[Y_predicted == 1] == 0)
 
     def _calc_tn(self, Y_input: np.array, Y_predicted: np.array) -> float:
-        return np.sum(Y_predicted[(Y_predicted == 0) & (Y_input == 0)])
+        return np.sum((Y_predicted == 0) & (Y_input == 0))
 
     def _calc_fn(self, Y_input: np.array, Y_predicted: np.array) -> float:
         return np.sum(Y_input[Y_predicted == 0] == 1)
@@ -79,6 +90,7 @@ class MyLogReg:
     def _calc_accuracy(self, Y_input: np.array, Y_predicted: np.array) -> float:
         TP = self._calc_tp(Y_input, Y_predicted)
         TN = self._calc_tn(Y_input, Y_predicted)
+        print(TP, TN, Y_predicted.size)
         return (TP + TN) / Y_predicted.size
 
     def _calc_precision(self, Y_input: np.array, Y_predicted: np.array) -> float:
@@ -95,6 +107,16 @@ class MyLogReg:
         precision = self._calc_precision(Y_input, Y_predicted)
         recall = self._calc_recall(Y_input, Y_predicted)
         return 2 * precision * recall / (precision + recall)
+
+    def _calc_roc_auc(self, Y_input: np.array, Y_predicted: np.array) -> float:
+        N_count = np.sum(Y_input == 0)
+        P_count = np.sum(Y_input == 1)
+        roc_auc = 0
+        for negative in Y_predicted[Y_input == 0]:
+            smaller = np.sum(negative < Y_predicted[Y_input == 1])
+            equal = 0.5 * np.sum(negative == Y_predicted[Y_input == 1])
+            roc_auc += smaller + equal
+        return roc_auc / N_count / P_count
 
     def get_coef(self):
         return self.weights
