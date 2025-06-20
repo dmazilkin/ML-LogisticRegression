@@ -6,14 +6,14 @@ from typing import Union
 from src.arg_parser import ArgParser
 from src.logreg import MyLogReg
 
-N = 100
+N = 500
 
-def example_linear(n_iter: int, metric: Union[None, str]) -> None:
+def example_linear(n_iter: int, learning_rate: float, metric: Union[None, str]) -> None:
     np.random.seed(42)
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X.loc[:, 0] > X.loc[:, 1] - 2).astype(int)
 
-    model = MyLogReg(n_iter=n_iter, metric=metric)
+    model = MyLogReg(n_iter=n_iter, metric=metric, learning_rate=learning_rate)
     model.fit(X, Y, verbose=True)
     Y_predicted = model.predict(X)
 
@@ -26,13 +26,13 @@ def example_linear(n_iter: int, metric: Union[None, str]) -> None:
     axis[1].set_title('Predicted data')
     plt.show()
 
-def example_regularization(n_iter: int, metric: Union[None, str], reg: Union[None, str], l1_coef: Union[None, float], l2_coef: Union[None, float]) -> None:
+def example_regularization(n_iter: int, learning_rate: float, metric: Union[None, str], reg: Union[None, str], l1_coef: Union[None, float], l2_coef: Union[None, float]) -> None:
     np.random.seed(42)
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X.loc[:, 0] > X.loc[:, 1] - 2).astype(int)
     X = pd.concat([X, X.loc[:, 1]**2, X.loc[:, 1]**3], axis=1)
     
-    model = MyLogReg(n_iter=n_iter, metric=metric, reg=reg, l1_coef=l1_coef, l2_coef=l2_coef)
+    model = MyLogReg(n_iter=n_iter, learning_rate=learning_rate, metric=metric, reg=reg, l1_coef=l1_coef, l2_coef=l2_coef)
     model.fit(X, Y, verbose=True)
     Y_predicted = model.predict(X)
 
@@ -44,16 +44,16 @@ def example_regularization(n_iter: int, metric: Union[None, str], reg: Union[Non
     axis[1].scatter(X.to_numpy()[Y_predicted == 0][:, 0], X.to_numpy()[Y_predicted == 0][:, 1], color='red')
     axis[1].set_title('Predicted data')
     plt.show()
-        
+    
 def main():
     parser = ArgParser()
     arguments = parser.parse()
 
     if arguments['example'] == 'linear':
-        example_linear(arguments['iter'], arguments['metric'])
+        example_linear(arguments['iter'], arguments['lr'], arguments['metric'])
 
     if arguments['example'] == 'regularization':
-        example_regularization(arguments['iter'], arguments['metric'], arguments['reg'], arguments['l1'], arguments['l2'])
+        example_regularization(arguments['iter'],  arguments['lr'], arguments['metric'], arguments['reg'], arguments['l1'], arguments['l2'])
 
 if __name__ == '__main__':
     main()
