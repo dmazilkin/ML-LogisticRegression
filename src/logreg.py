@@ -6,7 +6,7 @@ EPS = 10 ** (-15)
 THRESHOLD = 0.5
 
 class MyLogReg:
-    def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0):
+    def __init__(self, n_iter: int = 10, learning_rate: Union[float, callable] = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.metric = metric
@@ -30,7 +30,8 @@ class MyLogReg:
             Y_predicted = self._predict_proba(X, self.weights)
             loss = self._calc_loss(Y_input, Y_predicted)
             gradient = self._calc_gradient(Y_input, Y_predicted, X)
-            self.weights -= self.learning_rate * gradient
+            lr = self.learning_rate(epoch + 1) if callable(self.learning_rate) else self.learning_rate
+            self.weights -= lr * gradient
 
             if (verbose > 0) and (epoch % verbose == 0):
                 ind_log = 'start' if epoch == 0 else epoch
