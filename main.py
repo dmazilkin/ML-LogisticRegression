@@ -1,17 +1,19 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+from typing import Union
 
+from src.arg_parser import ArgParser
 from src.logreg import MyLogReg
 
 N = 100
 
-def main():
+def example_linear(n_iter: int, metric: Union[None, str]) -> None:
     np.random.seed(42)
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X[0] > X[1] - 2).astype(int)
 
-    model = MyLogReg(n_iter=50, metric='roc_auc')
+    model = MyLogReg(n_iter=n_iter, metric=metric)
     model.fit(X, Y, verbose=True)
     Y_predicted = model.predict(X)
 
@@ -23,6 +25,30 @@ def main():
     axis[1].scatter(X.to_numpy()[Y_predicted == 0][:, 0], X.to_numpy()[Y_predicted == 0][:, 1], color='red')
     axis[1].set_title('Predicted data')
     plt.show()
+
+def example_regularization(n_iter: int, metric: Union[None, str], reg: Union[None, str], l1_coef: Union[None, float], l2_coef: Union[None, float]) -> None:
+    np.random.seed(42)
+    X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
+    Y = (X[0] > X[1] - 2).astype(int)
+
+    model = MyLogReg(n_iter=n_iter, metric=metric, reg=reg, l1_coef=l1_coef, l2_coef=l2_coef)
+    model.fit(X, Y, verbose=True)
+    Y_predicted = model.predict(X)
+
+    figure, axis = plt.subplots(1, 2)
+    axis[0].scatter(X.to_numpy()[Y == 1][:, 0], X.to_numpy()[Y == 1][:, 1], color='blue')
+    axis[0].scatter(X.to_numpy()[Y == 0][:, 0], X.to_numpy()[Y == 0][:, 1], color='red')
+    axis[0].set_title('Real data')
+    axis[1].scatter(X.to_numpy()[Y_predicted == 1][:, 0], X.to_numpy()[Y_predicted == 1][:, 1], color='blue')
+    axis[1].scatter(X.to_numpy()[Y_predicted == 0][:, 0], X.to_numpy()[Y_predicted == 0][:, 1], color='red')
+    axis[1].set_title('Predicted data')
+    plt.show()
+
+
+
+def main():
+    parser = ArgParser()
+    arguments = parser.parse()
 
 if __name__ == '__main__':
     main()
