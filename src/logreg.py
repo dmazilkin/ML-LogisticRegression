@@ -6,12 +6,15 @@ EPS = 10 ** (-15)
 THRESHOLD = 0.5
 
 class MyLogReg:
-    def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None):
+    def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.metric = metric
         self.best_metric = None
         self.weights = None
+        self.reg = reg
+        self.l1_coef = l1_coef
+        self.l2_coef = l2_coef
 
     def __str__(self):
         return f"MyLogReg class: n_iter={self.n_iter}, learning_rate={self.learning_rate}"
@@ -36,7 +39,7 @@ class MyLogReg:
 
             epoch += 1
 
-            if epoch == self.n_iter:
+            if epoch == self.n_iter and self.metric is not None:
                 Y_predicted = self._predict_proba(X, self.weights)
                 self.best_metric = self._calc_metric(self.metric, Y_input, Y_predicted)
 
@@ -52,11 +55,46 @@ class MyLogReg:
         Y[Y_linear < 0] = np.exp(Y_linear[Y_linear < 0]) / (1 + np.exp(Y_linear[Y_linear < 0]))
         return Y
 
+    def _l1_reg(self, option: str) -> np.array:
+        options = {
+            'gradient': self.l1_coef * np.sign(self.weights),
+            'loss': self.l1_coef * self.weights,
+        }
+
+        return options[option]
+
+    def _l2_reg(self, option: str) -> np.array:
+        options = {
+            'gradient': 2 * self.l2_coef * self.weights,
+            'loss': self.l2_coef * self.weights ** 2,
+        }
+
+        return options[option]
+
+    def _elastic_reg(self, option: str) -> np.array:
+        return self._l1_reg(option) + self._l2_reg(option)
+
     def _calc_loss(self, Y_input: np.array, Y_predicted: np.array) -> np.array:
-        return -1 * np.mean(Y_input * np.log(Y_predicted + EPS) + (1 - Y_input) * np.log(1 - Y_predicted + EPS))
+        available_regs = {
+            'l1': self._l1_reg,
+            'l2': self._l2_reg,
+            'elastic': self._elastic_reg,
+        }
+
+        reg = np.sum(available_regs[self.reg]('loss')) if self.reg in available_regs else 0
+        log_loss = -1 * np.mean(Y_input * np.log(Y_predicted + EPS) + (1 - Y_input) * np.log(1 - Y_predicted + EPS))
+        return log_loss + reg
 
     def _calc_gradient(self, Y_input: np.array, Y_predicted: np.array, X: np.array) -> np.array:
-        return X.T @ (Y_predicted - Y_input) / X.shape[0]
+        available_regs = {
+            'l1': self._l1_reg,
+            'l2': self._l2_reg,
+            'elastic': self._elastic_reg,
+        }
+
+        reg_grad = available_regs[self.reg]('gradient') if self.reg in available_regs else 0
+        loss_grad = X.T @ (Y_predicted - Y_input) / X.shape[0]
+        return loss_grad + reg_grad
 
     def _calc_metric(self, metric: str, Y_input: np.array, Y_predicted: np.array) -> float:
         available_metrics_class = {
