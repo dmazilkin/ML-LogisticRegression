@@ -63,17 +63,23 @@ class MyLogReg:
         return Y
 
     def _l1_reg(self, option: str) -> np.array:
+        exclude_bias = np.zeros(self.weights.shape) + 1
+        exclude_bias[0] = 0
+        exclude_bias *= self.weights
         options = {
-            'gradient': self.l1_coef * np.sign(self.weights),
-            'loss': self.l1_coef * self.weights,
+            'gradient': self.l1_coef * np.sign(exclude_bias),
+            'loss': self.l1_coef * exclude_bias,
         }
 
         return options[option]
 
     def _l2_reg(self, option: str) -> np.array:
+        exclude_bias = np.zeros(self.weights.shape) + 1
+        exclude_bias[0] = 0
+        exclude_bias *= self.weights
         options = {
-            'gradient': 2 * self.l2_coef * self.weights,
-            'loss': self.l2_coef * self.weights ** 2,
+            'gradient': 2 * self.l2_coef * exclude_bias,
+            'loss': self.l2_coef * exclude_bias ** 2,
         }
 
         return options[option]
