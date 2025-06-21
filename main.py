@@ -6,14 +6,14 @@ from typing import Union
 from src.arg_parser import ArgParser
 from src.logreg import MyLogReg
 
-N = 500
+N = 800
 
 def example_linear(n_iter: int, learning_rate: float, metric: Union[None, str]) -> None:
     np.random.seed(42)
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X.loc[:, 0] > X.loc[:, 1] - 2).astype(int)
 
-    model = MyLogReg(n_iter=n_iter, metric=metric, learning_rate=learning_rate)
+    model = MyLogReg(n_iter=n_iter, metric=metric, learning_rate=learning_rate, sgd_sample=0.1)
     model.fit(X, Y, verbose=True)
     Y_predicted = model.predict(X)
 

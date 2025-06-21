@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
+import random
 from typing import Union
 
 EPS = 10 ** (-15)
 THRESHOLD = 0.5
 
 class MyLogReg:
-    def __init__(self, n_iter: int = 10, learning_rate: Union[float, callable] = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0):
+    def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0, sgd_sample: Union[int, float, None] = None, random_state: int = 42):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.metric = metric
@@ -15,6 +16,8 @@ class MyLogReg:
         self.reg = reg
         self.l1_coef = l1_coef
         self.l2_coef = l2_coef
+        self.sgd_sample = sgd_sample
+        self.random_state = random_state
 
     def __str__(self):
         return f"MyLogReg class: n_iter={self.n_iter}, learning_rate={self.learning_rate}"
@@ -25,6 +28,9 @@ class MyLogReg:
         features_count = X.shape[1]
         self.weights = np.zeros((features_count, 1)) + 1
         epoch = 0
+        
+        if self.sgd_sample is not None:
+            random.seed(self.random_state)
 
         while epoch < self.n_iter:
             Y_predicted = self._predict_proba(X, self.weights)
@@ -79,7 +85,7 @@ class MyLogReg:
         available_regs = {
             'l1': self._l1_reg,
             'l2': self._l2_reg,
-            'elastic': self._elastic_reg,
+            'elasticnet': self._elastic_reg,
         }
 
         reg = np.sum(available_regs[self.reg]('loss')) if self.reg in available_regs else 0
@@ -90,12 +96,20 @@ class MyLogReg:
         available_regs = {
             'l1': self._l1_reg,
             'l2': self._l2_reg,
-            'elastic': self._elastic_reg,
+            'elasticnet': self._elastic_reg,
         }
 
         reg_grad = available_regs[self.reg]('gradient') if self.reg in available_regs else 0
-        loss_grad = X.T @ (Y_predicted - Y_input) / X.shape[0]
+        loss_grad = self._calc_batch_gradient(Y_input, Y_predicted, X) if self.sgd_sample is None else self._calc_mini_batch_gradient(Y_input, Y_predicted, X)
         return loss_grad + reg_grad
+    
+    def _calc_batch_gradient(self, Y_input: np.array, Y_predicted: np.array, X: np.array) -> np.array:
+        return X.T @ (Y_predicted - Y_input) / X.shape[0]
+    
+    def _calc_mini_batch_gradient(self, Y_input: np.array, Y_predicted: np.array, X: np.array) -> np.array:
+        sgd_sample = self.sgd_sample if isinstance(self.sgd_sample, int) else round(Y_input.shape[0] * self.sgd_sample)
+        batch_indices = random.sample(range(Y_input.shape[0]), sgd_sample)
+        return X[batch_indices].T @ (Y_predicted[batch_indices] - Y_input[batch_indices]) / sgd_sample
 
     def _calc_metric(self, metric: str, Y_input: np.array, Y_predicted: np.array) -> float:
         available_metrics_class = {
@@ -159,11 +173,12 @@ class MyLogReg:
 
     def get_coef(self):
         return self.weights
-
+    
     def _preprocess_features(self, X_input: pd.DataFrame) -> np.array:
         samples_count = X_input.shape[0]
         bias_feature = pd.DataFrame(np.zeros((samples_count, 1)) + 1)
-        return pd.concat([bias_feature, X_input], axis=1).to_numpy()
+        X_preprocess = X_input.reset_index(drop=True)
+        return pd.concat([bias_feature, X_preprocess], axis=1).to_numpy()
 
     def predict(self, X_input: pd.DataFrame) -> pd.Series:
         X = self._preprocess_features(X_input)
