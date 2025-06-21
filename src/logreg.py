@@ -6,7 +6,7 @@ from typing import Union
 EPS = 10 ** (-15)
 THRESHOLD = 0.5
 
-class MyLogReg:
+class LogReg:
     def __init__(self, n_iter: int = 10, learning_rate: float = 0.1, metric: Union[None, str] = None, reg: Union[None, str] = None, l1_coef: float = 0.0, l2_coef: float = 0.0, sgd_sample: Union[int, float, None] = None, random_state: int = 42):
         self.n_iter = n_iter
         self.learning_rate = learning_rate

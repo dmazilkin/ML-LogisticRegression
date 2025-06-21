@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from typing import Union
 
 from src.arg_parser import ArgParser
-from src.logreg import MyLogReg
+from src.logreg import LogReg
 
 N = 800
 
@@ -13,7 +13,7 @@ def example_linear(n_iter: int, learning_rate: float, metric: Union[None, str]) 
     X = pd.DataFrame(np.zeros((N, 2)) + 10 * np.random.rand(N, 2))
     Y = (X.loc[:, 0] > X.loc[:, 1] - 2).astype(int)
 
-    model = MyLogReg(n_iter=n_iter, metric=metric, learning_rate=learning_rate, sgd_sample=0.1)
+    model = LogReg(n_iter=n_iter, metric=metric, learning_rate=learning_rate, sgd_sample=0.1)
     model.fit(X, Y, verbose=100)
     Y_predicted = model.predict(X)
 
@@ -32,7 +32,7 @@ def example_regularization(n_iter: int, learning_rate: float, metric: Union[None
     Y = (X.loc[:, 0] > X.loc[:, 1] - 2).astype(int)
     X = pd.concat([X, X.loc[:, 1]**2, X.loc[:, 1]**3], axis=1)
     
-    model = MyLogReg(n_iter=n_iter, learning_rate=learning_rate, metric=metric, reg=reg, l1_coef=l1_coef, l2_coef=l2_coef)
+    model = LogReg(n_iter=n_iter, learning_rate=learning_rate, metric=metric, reg=reg, l1_coef=l1_coef, l2_coef=l2_coef)
     model.fit(X, Y, verbose=100)
     Y_predicted = model.predict(X)
 
