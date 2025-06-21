@@ -2,7 +2,7 @@
 
 This repository contains **Logistic Regression** implementation from scratch.
 
-## Features
+## About
 The main class *LogReg* is a custom implementation of logistic regression using NumPy. It supports both L1 and L2 regularization, custom evaluation metrics, and Stochastic Gradient Descent  for optimization. It supports the following options:
 - *n_iter* - number of training iterations (epochs).
 - *learning_rate* - learning rate for gradient descent.
@@ -29,18 +29,19 @@ Custom learning rate (float or callable per iteration) can be set during model i
 
 Verbose training output can be set for every *n* iterations.
 
-### Install dependencies
+## Dependencies
+To install all required dependencies execute the following:
 ```console
 pip install requirements.txt
 ```
 
-### Run Logistic Regression example
-To start the main script, execute the following command:
+## Usage 
+To run Logistic Regression examples, execute the following command:
 ```console
 python main.py [OPTIONS]
 ```
 
-#### Available options
+### Available options
 - **-e, --example** (required) - type of example to run. Available examples: linear, regularization.
 - **-i, --iter** (required) - number of training iterations.
 - **-l, --lr** (required) - learning rate for gradient descent.
